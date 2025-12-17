@@ -68,6 +68,14 @@ echo Using NextDNS executable: %NEXTDNS_PATH%
 echo Profile: %PROFILE%
 echo.
 
+:: Consolidated rule definitions: name|description|IPs
+set "RULES_EU=^
+"NextDNS Block anexia-fra|Block anexia-fra (anycast2, ultralow1)|217.146.22.163,2a00:11c0:e:ffff:1::d" ^
+"NextDNS Block zepto-fra|Block zepto-fra (ultralow2)|194.45.101.249,2a0b:4341:704:24:5054:ff:fe91:8a6c" ^
+"NextDNS Block zepto-ber|Block zepto-ber (anycast1)|45.90.28.0,2a07:a8c0::" ^
+"NextDNS Block vultr-fra|Block vultr-fra (ultralow1)|199.247.16.158,2a05:f480:1800:8ed:5400:2ff:fec8:7e46""
+set "RULES_US="NextDNS Block US Routing|Block US routing range|45.90.0.0-45.90.255.255""
+
 if /i "%ACTION%"=="remove" goto :remove_rules
 
 :: ================================================================
@@ -82,10 +90,7 @@ if /i "%PROFILE%"=="block-all" goto :add_eu
 goto :skip_eu
 
 :add_eu
-call :add_rule "NextDNS Block anexia-fra" "Block anexia-fra (anycast2, ultralow1)" "217.146.22.163,2a00:11c0:e:ffff:1::d"
-call :add_rule "NextDNS Block zepto-fra" "Block zepto-fra (ultralow2)" "194.45.101.249,2a0b:4341:704:24:5054:ff:fe91:8a6c"
-call :add_rule "NextDNS Block zepto-ber" "Block zepto-ber (anycast1)" "45.90.28.0,2a07:a8c0::"
-call :add_rule "NextDNS Block vultr-fra" "Block vultr-fra (ultralow1)" "199.247.16.158,2a05:f480:1800:8ed:5400:2ff:fec8:7e46"
+call :add_rules RULES_EU
 
 :skip_eu
 
@@ -95,7 +100,7 @@ if /i "%PROFILE%"=="block-all" goto :add_us
 goto :skip_us
 
 :add_us
-call :add_rule "NextDNS Block US Routing" "Block US routing range" "45.90.0.0-45.90.255.255"
+call :add_rules RULES_US
 
 :skip_us
 
@@ -110,11 +115,8 @@ goto :end
 echo Removing NextDNS routing rules...
 echo.
 
-call :remove_rule "NextDNS Block anexia-fra"
-call :remove_rule "NextDNS Block zepto-fra"
-call :remove_rule "NextDNS Block zepto-ber"
-call :remove_rule "NextDNS Block vultr-fra"
-call :remove_rule "NextDNS Block US Routing"
+call :remove_ruleset RULES_EU
+call :remove_ruleset RULES_US
 
 echo.
 echo NextDNS routing rules removed successfully!
@@ -153,6 +155,32 @@ if %errorLevel% neq 0 (
     echo   WARNING: Rule may not exist or already removed
 ) else (
     echo   SUCCESS
+)
+goto :eof
+
+:: ================================================================
+:: Helper to add all rules defined in a list variable
+:: Parameters: %1=variable name containing rule list
+:: ================================================================
+:add_rules
+call set "RULE_SET=%%%~1%%"
+for %%R in (!RULE_SET!) do (
+    for /f "tokens=1-3 delims=|" %%A in ("%%~R") do (
+        call :add_rule "%%~A" "%%~B" "%%~C"
+    )
+)
+goto :eof
+
+:: ================================================================
+:: Helper to remove all rules defined in a list variable
+:: Parameters: %1=variable name containing rule list
+:: ================================================================
+:remove_ruleset
+call set "RULE_SET=%%%~1%%"
+for %%R in (!RULE_SET!) do (
+    for /f "tokens=1-3 delims=|" %%A in ("%%~R") do (
+        call :remove_rule "%%~A"
+    )
 )
 goto :eof
 
