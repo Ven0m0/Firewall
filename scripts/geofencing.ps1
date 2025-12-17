@@ -32,6 +32,10 @@ param(
     [switch]$Remove
 )
 
+# Import common utilities
+$modulePath = Join-Path $PSScriptRoot 'FirewallUtils.psm1'
+Import-Module $modulePath -Force
+
 # Error handling
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -144,30 +148,7 @@ $script:ProfileRanges = @{
     )
 }
 
-function Find-CodExecutable {
-    <#
-    .SYNOPSIS
-        Locates the Call of Duty executable
-    #>
-    [CmdletBinding()]
-    param()
-
-    $possiblePaths = @(
-        "${env:ProgramFiles(x86)}\Call of Duty\_retail_\cod.exe",
-        "${env:ProgramFiles}\Call of Duty\_retail_\cod.exe",
-        "D:\Call of Duty\_retail_\cod.exe",
-        "C:\Call of Duty\_retail_\cod.exe"
-    )
-
-    foreach ($path in $possiblePaths) {
-        if (Test-Path $path) {
-            Write-Verbose "Found cod.exe at: $path"
-            return $path
-        }
-    }
-
-    return $null
-}
+# Note: Find-CodExecutable is now imported from FirewallUtils.psm1
 
 function Get-IPRanges {
     <#
@@ -226,27 +207,26 @@ function Add-GeofencingRule {
         [string]$IPRanges
     )
 
-    try {
-        New-NetFirewallRule `
-            -DisplayName $RuleName `
-            -Direction Outbound `
-            -Protocol UDP `
-            -Action Block `
-            -Program $ExecutablePath `
-            -RemoteAddress $IPRanges `
-            -ErrorAction Stop | Out-Null
+    $result = Add-FirewallRule `
+        -RuleName $RuleName `
+        -Direction Outbound `
+        -Protocol UDP `
+        -Action Block `
+        -Program $ExecutablePath `
+        -RemoteAddress $IPRanges `
+        -Description "Geographic blocking for Call of Duty servers"
 
-        Write-Host "Created rule: $RuleName" -ForegroundColor Green
-    }
-    catch {
-        Write-Error "Failed to create rule '$RuleName': $_"
-        throw
+    if (-not $result) {
+        throw "Failed to create rule '$RuleName'"
     }
 }
 
 # Main execution
 try {
     Write-Host "`n=== Call of Duty Geofencing Configuration ===" -ForegroundColor Cyan
+
+    # Verify administrator privileges
+    Assert-AdministratorRole
 
     # Handle removal mode
     if ($Remove) {
