@@ -11,6 +11,14 @@ This repository contains Windows firewall scripts for implementing geoblocking a
 
 ## Recent Updates
 
+**Version 3.0 - Full PowerShell Modernization**
+- **Eliminated ALL legacy batch scripts** - Everything is now modern PowerShell
+- **Created shared utilities module** (`FirewallUtils.psm1`) - Zero code duplication
+- **Unified PowerShell architecture** - Consistent error handling and validation across all scripts
+- **Enhanced parameter support** - More flexible configuration options
+- **Better user experience** - Colored output, improved error messages, progress feedback
+- **Maintained backward compatibility** - Legacy batch scripts moved to `legacy/` folder for reference
+
 **Version 2.0 - Refactored & Optimized**
 - Consolidated duplicate code across multiple files
 - Added PowerShell script with parameterized region profiles
@@ -18,28 +26,37 @@ This repository contains Windows firewall scripts for implementing geoblocking a
 - Auto-detection of game installation path
 - Added remove/cleanup functionality
 - Centralized rule definitions so add/remove paths stay in sync
-- Better documentation and usage examples
 
 ## Features
 
-- **Unified Geofencing Script**: Single PowerShell script with multiple region profiles
-- **Specific IP Blocking**: Batch script for blocking individual server IPs by country
-- **Firewall Port Configuration**: Allow required game ports through Windows Firewall
-- **Auto-Detection**: Automatically locates Call of Duty installation
-- **Error Handling**: Robust validation and informative error messages
-- **Easy Cleanup**: Simple removal of all firewall rules
+- **100% Modern PowerShell**: All scripts use PowerShell 5.1+ with advanced features
+- **Shared Utilities Module**: Common functions eliminate code duplication
+- **Unified Geofencing**: Single PowerShell script with multiple region profiles
+- **IP Blocking**: Block individual server IPs by country/region
+- **Port Configuration**: Allow required game ports through Windows Firewall
+- **DNS Routing Control**: NextDNS server routing management
+- **Auto-Detection**: Automatically locates game and service installations
+- **Robust Error Handling**: Comprehensive validation and informative error messages
+- **Easy Cleanup**: Simple removal of all firewall rules with `-Action Remove`
+- **Flexible Configuration**: Parameter-based configuration, no manual file editing
 
 ## Repository Structure
 
 ```
 Firewall/
-├── scripts/                           # Refactored scripts (recommended)
-│   ├── geofencing.ps1                # Unified PowerShell geofencing script
-│   ├── specific-ip-blocking.cmd      # Batch script for specific IPs
-│   └── firewall-ports.cmd            # Port configuration script
-├── legacy/                            # Original scripts (deprecated)
-│   ├── Bo6 GeoFencing.cmd
-│   └── Geofencing/
+├── scripts/                           # Modern PowerShell scripts (v3.0)
+│   ├── FirewallUtils.psm1            # Shared utilities module
+│   ├── geofencing.ps1                # Unified regional blocking
+│   ├── ip-blocking.ps1               # Specific IP blocking by country
+│   ├── port-configuration.ps1        # Port allowlist configuration
+│   └── dns-routing.ps1               # NextDNS routing control
+├── legacy/                            # Deprecated batch scripts (reference only)
+│   ├── specific-ip-blocking.cmd      # Old batch script
+│   ├── firewall-ports.cmd            # Old batch script
+│   ├── nextdns-routing.cmd           # Old batch script
+│   ├── Bo6 GeoFencing.cmd            # Original monolithic script
+│   └── Geofencing/                   # Old separate region files
+├── IPs/                               # IP address reference data
 └── README.md
 ```
 
@@ -54,9 +71,9 @@ Firewall/
 
 ## Usage
 
-### Recommended: Unified PowerShell Geofencing
+### 1. Regional Geofencing (geofencing.ps1)
 
-The new unified script consolidates all regional blocking into a single, parameterized PowerShell script.
+Block entire regions using IP range profiles.
 
 **Add geofencing rules:**
 ```powershell
@@ -81,37 +98,71 @@ The new unified script consolidates all regional blocking into a single, paramet
 .\scripts\geofencing.ps1 -Remove
 ```
 
-### Alternative: Specific IP Blocking (Batch)
+### 2. Specific IP Blocking (ip-blocking.ps1)
 
-For blocking individual server IPs by country (UK, France, Netherlands, etc.).
+Block individual server IPs by country (UK, France, Netherlands, Poland, Switzerland, Luxembourg).
 
-**Add blocking rules:**
-```batch
-scripts\specific-ip-blocking.cmd add
+**Add blocking rules (default: UK, France, Luxembourg):**
+```powershell
+.\scripts\ip-blocking.ps1 -Action Add
+```
+
+**Specify custom regions:**
+```powershell
+.\scripts\ip-blocking.ps1 -Action Add -EnabledRegions @('UK', 'France', 'Netherlands')
 ```
 
 **Remove blocking rules:**
-```batch
-scripts\specific-ip-blocking.cmd remove
+```powershell
+.\scripts\ip-blocking.ps1 -Action Remove
 ```
 
-### Port Configuration
+### 3. Port Configuration (port-configuration.ps1)
 
 Allow required game ports through Windows Firewall.
 
 **Add port rules:**
-```batch
-scripts\firewall-ports.cmd add
+```powershell
+.\scripts\port-configuration.ps1 -Action Add
 ```
 
 **Remove port rules:**
-```batch
-scripts\firewall-ports.cmd remove
+```powershell
+.\scripts\port-configuration.ps1 -Action Remove
 ```
 
-**Ports configured:**
+**Custom ports:**
+```powershell
+.\scripts\port-configuration.ps1 -Action Add -TCPPorts "3074,3075" -UDPPorts "3074"
+```
+
+**Default ports configured:**
 - **TCP**: 3074, 3075, 27015-27030, 27036-27037
 - **UDP**: 3074, 4380, 27000-27036
+
+### 4. NextDNS Routing Control (dns-routing.ps1)
+
+Block specific NextDNS servers to control DNS routing.
+
+**Block European servers:**
+```powershell
+.\scripts\dns-routing.ps1 -Action Add -Profile BlockEU
+```
+
+**Block US servers:**
+```powershell
+.\scripts\dns-routing.ps1 -Action Add -Profile BlockUS
+```
+
+**Block all servers:**
+```powershell
+.\scripts\dns-routing.ps1 -Action Add -Profile BlockAll
+```
+
+**Remove all DNS routing rules:**
+```powershell
+.\scripts\dns-routing.ps1 -Action Remove
+```
 
 ## Available Blocking Profiles
 
@@ -126,50 +177,60 @@ scripts\firewall-ports.cmd remove
 
 These scripts use Windows Firewall to create outbound blocking rules that prevent your game from connecting to specific IP addresses or ranges. This effectively controls which regional servers you can connect to.
 
-### PowerShell Script Features
+### Modern PowerShell Features
 
-1. **Auto-Detection**: Searches common installation paths for `cod.exe`
-2. **Parameterized Profiles**: Select blocking profile via command-line parameter
-3. **IP Range Deduplication**: Common European ranges shared across profiles
-4. **Error Handling**: Validates paths, checks permissions, reports failures
-5. **Clean Removal**: Remove all rules with single command
-
-### Batch Script Features
-
-1. **Admin Check**: Validates administrator privileges before execution
-2. **Path Auto-Detection**: Searches multiple common installation locations
-3. **Error Reporting**: Reports success/failure for each rule
-4. **Bidirectional**: Both add and remove functionality
+1. **Auto-Detection**: Automatically searches common installation paths for executables
+2. **Shared Utilities Module**: Eliminates code duplication across all scripts
+3. **Parameterized Configuration**: All options configurable via command-line parameters
+4. **Advanced Error Handling**: Comprehensive validation, permission checks, detailed error messages
+5. **Clean Removal**: Remove all rules with single `-Action Remove` or `-Remove` command
+6. **Colored Output**: Visual feedback with success (green), warnings (yellow), errors (red)
+7. **Progress Reporting**: Summary of successful/failed operations
+8. **Consistent API**: All scripts follow the same parameter patterns and conventions
 
 ## Configuration
 
-### PowerShell Script
+All scripts support parameter-based configuration - no manual file editing required!
 
-The PowerShell script accepts several parameters:
+### geofencing.ps1 Parameters
 
 ```powershell
 .\scripts\geofencing.ps1 [[-Profile] <String>] [[-GamePath] <String>] [-Remove]
 ```
 
-- `-Profile`: Region profile to apply (Germany, GermanyFrance, GermanyNetherlands, Europe)
-- `-GamePath`: Custom path to cod.exe (optional, auto-detected by default)
-- `-Remove`: Remove all geofencing rules instead of adding
+- `-Profile`: Region profile (Germany, GermanyFrance, GermanyNetherlands, Europe)
+- `-GamePath`: Custom path to cod.exe (optional, auto-detected)
+- `-Remove`: Remove all geofencing rules
 
-### Batch Scripts
+### ip-blocking.ps1 Parameters
 
-Edit variables at the top of each `.cmd` file to customize:
-
-**specific-ip-blocking.cmd:**
-```batch
-set "UK_IPS=45.77.230.226,82.163.76.0/24,..."
-set "FRANCE_IPS=78.138.107.0/24,95.179.208.205,..."
+```powershell
+.\scripts\ip-blocking.ps1 [[-Action] <String>] [[-GamePath] <String>] [[-EnabledRegions] <String[]>]
 ```
 
-**firewall-ports.cmd:**
-```batch
-set "TCP_PORTS=3074,3075,27015-27030,27036-27037"
-set "UDP_PORTS=3074,4380,27000-27036"
+- `-Action`: Add or Remove (default: Add)
+- `-GamePath`: Custom path to cod.exe (optional, auto-detected)
+- `-EnabledRegions`: Array of regions to enable (default: UK, France, Luxembourg)
+
+### port-configuration.ps1 Parameters
+
+```powershell
+.\scripts\port-configuration.ps1 [[-Action] <String>] [[-TCPPorts] <String>] [[-UDPPorts] <String>]
 ```
+
+- `-Action`: Add or Remove (default: Add)
+- `-TCPPorts`: Custom TCP ports (default: 3074,3075,27015-27030,27036-27037)
+- `-UDPPorts`: Custom UDP ports (default: 3074,4380,27000-27036)
+
+### dns-routing.ps1 Parameters
+
+```powershell
+.\scripts\dns-routing.ps1 [[-Action] <String>] [[-Profile] <String>] [[-NextDNSPath] <String>]
+```
+
+- `-Action`: Add or Remove (default: Add)
+- `-Profile`: BlockEU, BlockUS, or BlockAll (default: BlockEU)
+- `-NextDNSPath`: Custom path to NextDNSService.exe (optional, auto-detected)
 
 ## Troubleshooting
 
@@ -193,51 +254,80 @@ set "UDP_PORTS=3074,4380,27000-27036"
 
 ### Remove all rules
 ```powershell
-# PowerShell geofencing rules
+# Regional geofencing rules
 .\scripts\geofencing.ps1 -Remove
 
-# Batch IP blocking rules
-.\scripts\specific-ip-blocking.cmd remove
+# IP blocking rules
+.\scripts\ip-blocking.ps1 -Action Remove
 
 # Port rules
-.\scripts\firewall-ports.cmd remove
+.\scripts\port-configuration.ps1 -Action Remove
+
+# DNS routing rules
+.\scripts\dns-routing.ps1 -Action Remove
 ```
 
 ## Migration from Legacy Scripts
 
-If you're using the old scripts, here's how to migrate:
+### v2.0 → v3.0 Migration
 
-**Old:**
+If you're using the old batch scripts, update to the new PowerShell versions:
+
+**Old (v2.0 Batch):**
 ```batch
-# Multiple separate .txt files with duplicated IP ranges
-Cod Geoblock Germany.txt
-Cod Geoblock Germany & France.txt
-Cod Geoblock Germany & Netherlands.txt
-Cod Geoblock Europe.txt
+scripts\specific-ip-blocking.cmd add
+scripts\firewall-ports.cmd add
+scripts\nextdns-routing.cmd add block-eu
 ```
 
-**New:**
+**New (v3.0 PowerShell):**
 ```powershell
-# Single script with profile parameter
+.\scripts\ip-blocking.ps1 -Action Add
+.\scripts\port-configuration.ps1 -Action Add
+.\scripts\dns-routing.ps1 -Action Add -Profile BlockEU
+```
+
+### v1.0 → v3.0 Migration
+
+If you're using the original scripts:
+
+**Old (v1.0):**
+```batch
+# Multiple separate .txt files
+Cod Geoblock Germany.txt
+Cod Geoblock Germany & France.txt
+```
+
+**New (v3.0):**
+```powershell
+# Single unified script
 .\scripts\geofencing.ps1 -Profile Germany
 .\scripts\geofencing.ps1 -Profile GermanyFrance
-.\scripts\geofencing.ps1 -Profile GermanyNetherlands
-.\scripts\geofencing.ps1 -Profile Europe
 ```
 
 ## Changelog
 
-### v2.0.0 - Refactored Release
+### v3.0.0 - Full PowerShell Modernization (2024)
+- **100% PowerShell**: Converted all batch scripts to modern PowerShell
+- **Shared utilities module**: Created `FirewallUtils.psm1` for zero code duplication
+- **New scripts**: Added `ip-blocking.ps1`, `port-configuration.ps1`, `dns-routing.ps1`
+- **Enhanced features**: Parameter-based configuration, colored output, progress reporting
+- **Improved error handling**: Consistent validation and error messages across all scripts
+- **Better UX**: Visual feedback with colored output (green/yellow/red)
+- **Backward compatibility**: Legacy batch scripts moved to `legacy/` folder
+
+### v2.0.0 - Refactored Release (2024)
 - **Eliminated duplicate code**: Reduced codebase by ~80%
-- **Unified PowerShell script**: Single script replaces 4 separate files
+- **Unified PowerShell script**: Single `geofencing.ps1` replaces 4 separate files
 - **Auto-detection**: Finds game installation automatically
 - **Better error handling**: Comprehensive validation and error messages
 - **Cleanup support**: Easy removal of all firewall rules
 - **Improved documentation**: Comprehensive usage examples
 
-### v1.0.0 - Initial Release
+### v1.0.0 - Initial Release (2024)
 - Basic geofencing batch scripts
 - Individual PowerShell blocking files per region
+- Manual path configuration required
 
 ## Resources
 
