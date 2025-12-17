@@ -63,6 +63,9 @@ set "POLAND_IPS=64.176.67.115,64.176.65.32,64.176.64.244"
 set "SWITZERLAND_IPS=35.216.207.127"
 set "LUXEMBOURG_IPS=188.42.190.196"
 
+:: Consolidated rule definitions: name|IPs|enabled
+set "RULES_LIST="Bo6 Block UK|%UK_IPS%|yes" "Bo6 Block France|%FRANCE_IPS%|yes" "Bo6 Block Netherlands|%NETHERLANDS_IPS%|no" "Bo6 Block Poland|%POLAND_IPS%|no" "Bo6 Block Switzerland|%SWITZERLAND_IPS%|no" "Bo6 Block Luxembourg|%LUXEMBOURG_IPS%|yes""
+
 if /i "%ACTION%"=="remove" goto :remove_rules
 
 :: ================================================================
@@ -71,12 +74,11 @@ if /i "%ACTION%"=="remove" goto :remove_rules
 echo Adding geofencing rules...
 echo.
 
-call :add_rule "Bo6 Block UK" "%UK_IPS%" yes
-call :add_rule "Bo6 Block France" "%FRANCE_IPS%" yes
-call :add_rule "Bo6 Block Netherlands" "%NETHERLANDS_IPS%" no
-call :add_rule "Bo6 Block Poland" "%POLAND_IPS%" no
-call :add_rule "Bo6 Block Switzerland" "%SWITZERLAND_IPS%" no
-call :add_rule "Bo6 Block Luxembourg" "%LUXEMBOURG_IPS%" yes
+for %%R in (%RULES_LIST%) do (
+    for /f "tokens=1-3 delims=|" %%A in ("%%~R") do (
+        call :add_rule "%%~A" "%%~B" "%%~C"
+    )
+)
 
 echo.
 echo Geofencing rules applied successfully!
@@ -89,12 +91,11 @@ goto :end
 echo Removing geofencing rules...
 echo.
 
-call :remove_rule "Bo6 Block UK"
-call :remove_rule "Bo6 Block France"
-call :remove_rule "Bo6 Block Netherlands"
-call :remove_rule "Bo6 Block Poland"
-call :remove_rule "Bo6 Block Switzerland"
-call :remove_rule "Bo6 Block Luxembourg"
+for %%R in (%RULES_LIST%) do (
+    for /f "tokens=1-3 delims=|" %%A in ("%%~R") do (
+        call :remove_rule "%%~A"
+    )
+)
 
 echo.
 echo Geofencing rules removed successfully!

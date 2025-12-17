@@ -17,6 +17,7 @@ This repository contains Windows firewall scripts for implementing geoblocking a
 - Improved error handling and validation
 - Auto-detection of game installation path
 - Added remove/cleanup functionality
+- Centralized rule definitions so add/remove paths stay in sync
 - Better documentation and usage examples
 
 ## Features
