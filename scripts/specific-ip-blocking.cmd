@@ -64,7 +64,13 @@ set "SWITZERLAND_IPS=35.216.207.127"
 set "LUXEMBOURG_IPS=188.42.190.196"
 
 :: Consolidated rule definitions: name|IPs|enabled
-set "RULES_LIST="Bo6 Block UK|%UK_IPS%|yes" "Bo6 Block France|%FRANCE_IPS%|yes" "Bo6 Block Netherlands|%NETHERLANDS_IPS%|no" "Bo6 Block Poland|%POLAND_IPS%|no" "Bo6 Block Switzerland|%SWITZERLAND_IPS%|no" "Bo6 Block Luxembourg|%LUXEMBOURG_IPS%|yes""
+set "RULES_LIST=^
+"Bo6 Block UK|%UK_IPS%|yes" ^
+"Bo6 Block France|%FRANCE_IPS%|yes" ^
+"Bo6 Block Netherlands|%NETHERLANDS_IPS%|no" ^
+"Bo6 Block Poland|%POLAND_IPS%|no" ^
+"Bo6 Block Switzerland|%SWITZERLAND_IPS%|no" ^
+"Bo6 Block Luxembourg|%LUXEMBOURG_IPS%|yes""
 
 if /i "%ACTION%"=="remove" goto :remove_rules
 
