@@ -1,7 +1,6 @@
 # Call of Duty: Black Ops 6 - Firewall & Geoblocking Scripts
 
-![GitHub Downloads](https://img.shields.io/github/downloads/Ven0m0/Firewall/total?logo=github&label=GitHub%20Downloads)
-![Commit activity](https://img.shields.io/github/last-commit/Ven0m0/Firewall?logo=github)
+![GitHub Downloads](https://img.shields.io/github/downloads/Ven0m0/Firewall/total?logo=github&label=GitHub%20Downloads)![Commit activity](https://img.shields.io/github/last-commit/Ven0m0/Firewall?logo=github)
 
 ## Overview
 
