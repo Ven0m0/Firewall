@@ -7,11 +7,13 @@ PowerShell-based Windows Firewall management for Call of Duty: Black Ops 6 geofe
 ## Architecture
 
 - `scripts/FirewallUtils.psm1` - Shared utility module with common functions
-- `scripts/geofencing.ps1` - Regional IP blocking with profiles
-- `scripts/ip-blocking.ps1` - Specific IP blocking by country
+- `scripts/geofencing.ps1` - Unified regional blocking (merges ip-blocking)
+- `scripts/game-servers.txt` - Parsable IP configuration by region
 - `scripts/port-configuration.ps1` - Game port allowlist management
 - `scripts/dns-routing.ps1` - NextDNS server routing control
 - `legacy/` - Deprecated batch scripts (reference only)
+
+> **Note**: `ip-blocking.ps1` has been merged into `geofencing.ps1`. Use `-Profile Europe` (default) or `-BlockRegions`.
 
 ## Key Conventions
 
@@ -36,22 +38,20 @@ PowerShell-based Windows Firewall management for Call of Duty: Black Ops 6 geofe
 ## Common Commands
 
 ```powershell
-# Apply geofencing profile
+# Apply geofencing profile (Europe whitelist by default)
+.\scripts\geofencing.ps1 -Profile Europe
+
+# Whitelist Germany
 .\scripts\geofencing.ps1 -Profile Germany
+
+# Custom blocking
+.\scripts\geofencing.ps1 -Profile Custom -BlockRegions @('UK', 'France')
 
 # Remove all geofencing rules
 .\scripts\geofencing.ps1 -Remove
 
-# Add IP blocking for specific regions
-.\scripts\ip-blocking.ps1 -Action Add -EnabledRegions @('UK', 'France')
-
 # Configure game ports
 .\scripts\port-configuration.ps1 -Action Add
-
-# Remove all rules
-.\scripts\geofencing.ps1 -Remove
-.\scripts\ip-blocking.ps1 -Action Remove
-.\scripts\port-configuration.ps1 -Action Remove
 ```
 
 ## Testing

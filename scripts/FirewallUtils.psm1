@@ -15,27 +15,79 @@ function Find-CodExecutable {
     <#
     .SYNOPSIS
         Locates the Call of Duty executable
+    .DESCRIPTION
+        Searches for Call of Duty: Black Ops 6 in common installation paths:
+        - Battle.net: C:\Program Files (x86)\Call of Duty
+        - Steam: C:\Program Files (x86)\Steam\steamapps\common\Call of Duty HQ
+        Uses system variables when available (ProgramFiles, ProgramFiles(x86))
     .OUTPUTS
-        String path to cod.exe or $null if not found
+        String path to cod24-cod.exe or $null if not found
     #>
     [CmdletBinding()]
     [OutputType([string])]
     param()
 
-$possiblePaths = @(
-         "${env:ProgramFiles(x86)}\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe",
-         "${env:ProgramFiles}\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe",
-         "C:\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe"
-     )
+    # Use system variables for paths
+    $programFilesX86 = ${env:ProgramFiles(x86)}
+    $programFiles = $env:ProgramFiles
+    
+    if (-not $programFilesX86) {
+        $programFilesX86 = "C:\Program Files (x86)"
+    }
+    if (-not $programFiles) {
+        $programFiles = "C:\Program Files"
+    }
 
-    foreach ($path in $possiblePaths) {
+    # Battle.net installation paths
+    $battlenetPaths = @(
+        "$programFilesX86\Call of Duty\cod24\cod24-s.exe",
+        "$programFilesX86\Call of Duty\cod24\cod24.exe",
+        "$programFilesX86\Call of Duty\Black Ops 6\cod24-s.exe",
+        "$programFilesX86\Call of Duty\Black Ops 6\cod24.exe"
+    )
+
+    # Steam installation paths
+    $steamPaths = @(
+        "$programFilesX86\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe",
+        "$programFiles\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe",
+        "C:\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe"
+    )
+
+    # Check Battle.net first (more common)
+    foreach ($path in $battlenetPaths) {
         if (Test-Path $path) {
-            Write-Verbose "Found cod.exe at: $path"
+            Write-Verbose "Found Call of Duty (Battle.net) at: $path"
+            return $path
+        }
+    }
+
+    # Check Steam paths
+    foreach ($path in $steamPaths) {
+        if (Test-Path $path) {
+            Write-Verbose "Found Call of Duty (Steam) at: $path"
             return $path
         }
     }
 
     Write-Warning "Could not auto-detect Call of Duty installation"
+    return $null
+}
+
+function Get-CodInstallPath {
+    <#
+    .SYNOPSIS
+        Gets the installation directory for Call of Duty
+    .OUTPUTS
+        String path to Call of Duty directory or $null if not found
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param()
+
+    $executable = Find-CodExecutable
+    if ($executable) {
+        return Split-Path -Parent $executable
+    }
     return $null
 }
 
@@ -261,6 +313,7 @@ function Assert-AdministratorRole {
 # Export module members
 Export-ModuleMember -Function @(
     'Find-CodExecutable',
+    'Get-CodInstallPath',
     'Find-NextDNSExecutable',
     'Add-FirewallRule',
     'Remove-FirewallRulesByPattern',

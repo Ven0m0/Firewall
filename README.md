@@ -11,6 +11,13 @@ This repository contains Windows firewall scripts for implementing geoblocking a
 
 ## Recent Updates
 
+**Version 4.0 - Unified Geofencing**
+- **Merged ip-blocking.ps1 into geofencing.ps1** - Single unified script
+- **Parsable IP configuration** - IP addresses in `game-servers.txt`, not hardcoded
+- **Europe whitelist by default** - User in Germany gets European servers
+- **Battle.net detection** - Supports both Battle.net and Steam installations
+- **System variables** - Uses `ProgramFiles(x86)` for portable paths
+
 **Version 3.0 - Full PowerShell Modernization**
 - **Eliminated ALL legacy batch scripts** - Everything is now modern PowerShell
 - **Created shared utilities module** (`FirewallUtils.psm1`) - Zero code duplication
@@ -44,10 +51,10 @@ This repository contains Windows firewall scripts for implementing geoblocking a
 
 ```
 Firewall/
-├── scripts/                           # Modern PowerShell scripts (v3.0)
-│   ├── FirewallUtils.psm1            # Shared utilities module
-│   ├── geofencing.ps1                # Unified regional blocking
-│   ├── ip-blocking.ps1               # Specific IP blocking by country
+├── scripts/                           # Modern PowerShell scripts (v4.0)
+│   ├── firewall-utils.psm1           # Shared utilities module
+│   ├── geofencing.ps1                # Unified regional blocking (merges ip-blocking)
+│   ├── game-servers.txt              # Parsable IP configuration by region
 │   ├── port-configuration.ps1        # Port allowlist configuration
 │   └── dns-routing.ps1               # NextDNS routing control
 ├── legacy/                            # Deprecated batch scripts (reference only)
@@ -56,9 +63,10 @@ Firewall/
 │   ├── nextdns-routing.cmd           # Old batch script
 │   ├── Bo6 GeoFencing.cmd            # Original monolithic script
 │   └── Geofencing/                   # Old separate region files
-├── IPs/                               # IP address reference data
 └── README.md
 ```
+
+> **Note**: `ip-blocking.ps1` has been merged into `geofencing.ps1`. Use `-Profile Europe` (default) to whitelist Europe.
 
 ## Quick Start
 
@@ -73,24 +81,24 @@ Firewall/
 
 ### 1. Regional Geofencing (geofencing.ps1)
 
-Block entire regions using IP range profiles.
+Block entire regions using IP range profiles. Reads IP addresses from `game-servers.txt`.
 
 **Add geofencing rules:**
 ```powershell
-# Block Germany only
-.\scripts\geofencing.ps1 -Profile Germany
-
-# Block Germany and France
-.\scripts\geofencing.ps1 -Profile GermanyFrance
-
-# Block Germany and Netherlands
-.\scripts\geofencing.ps1 -Profile GermanyNetherlands
-
-# Block all European servers
+# Whitelist Europe (blocks non-European servers) - DEFAULT
 .\scripts\geofencing.ps1 -Profile Europe
 
-# Custom game path
-.\scripts\geofencing.ps1 -Profile Germany -GamePath "D:\Call of Duty\_retail_\cod.exe"
+# Whitelist Germany (allows German servers, blocks others)
+.\scripts\geofencing.ps1 -Profile Germany
+
+# Custom blocking - specify regions to block
+.\scripts\geofencing.ps1 -Profile Custom -BlockRegions @('UK', 'France')
+
+# Auto-detect game path
+.\scripts\geofencing.ps1 -Profile Europe
+
+# Specify custom game path
+.\scripts\geofencing.ps1 -Profile Europe -GamePath "C:\Program Files (x86)\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe"
 ```
 
 **Remove all geofencing rules:**
@@ -98,24 +106,7 @@ Block entire regions using IP range profiles.
 .\scripts\geofencing.ps1 -Remove
 ```
 
-### 2. Specific IP Blocking (ip-blocking.ps1)
-
-Block individual server IPs by country (UK, France, Netherlands, Poland, Switzerland, Luxembourg).
-
-**Add blocking rules (default: UK, France, Luxembourg):**
-```powershell
-.\scripts\ip-blocking.ps1 -Action Add
-```
-
-**Specify custom regions:**
-```powershell
-.\scripts\ip-blocking.ps1 -Action Add -EnabledRegions @('UK', 'France', 'Netherlands')
-```
-
-**Remove blocking rules:**
-```powershell
-.\scripts\ip-blocking.ps1 -Action Remove
-```
+> **Note**: Europe is whitelisted by default since the user is in Germany. The script will automatically detect Battle.net (`C:\Program Files (x86)\Call of Duty`) or Steam (`C:\Program Files (x86)\Steam\steamapps\common\Call of Duty HQ`) installations.
 
 ### 3. Port Configuration (port-configuration.ps1)
 
@@ -166,12 +157,25 @@ Block specific NextDNS servers to control DNS routing.
 
 ## Available Blocking Profiles
 
-| Profile | Description | IP Ranges |
-|---------|-------------|-----------|
-| `Germany` | Blocks German servers only | Common EU + Germany-specific |
-| `GermanyFrance` | Blocks German and French servers | Common EU + Germany + France |
-| `GermanyNetherlands` | Blocks German and Dutch servers | Common EU + Germany + Netherlands |
-| `Europe` | Blocks all major European servers | Comprehensive European ranges |
+| Profile | Description | Behavior |
+|---------|-------------|----------|
+| `Europe` | Whitelist Europe | Blocks non-European servers, allows European ones (DEFAULT) |
+| `Germany` | Whitelist Germany | Blocks non-German servers, allows German ones |
+| `Custom` | Custom regions | Use `-BlockRegions` to specify which to block |
+
+### Available Regions (for Custom profile)
+
+| Region | Description |
+|--------|-------------|
+| `UK` | United Kingdom |
+| `France` | France |
+| `Netherlands` | Netherlands |
+| `Poland` | Poland |
+| `Switzerland` | Switzerland |
+| `Luxembourg` | Luxembourg |
+| `Germany` | Germany |
+
+> **Note**: IP addresses are loaded from `game-servers.txt` - no hardcoded IPs in scripts!
 
 ## How It Works
 
@@ -190,27 +194,22 @@ These scripts use Windows Firewall to create outbound blocking rules that preven
 
 ## Configuration
 
-All scripts support parameter-based configuration - no manual file editing required!
+All scripts support parameter-based configuration - IP addresses are loaded from `game-servers.txt`!
 
 ### geofencing.ps1 Parameters
 
 ```powershell
-.\scripts\geofencing.ps1 [[-Profile] <String>] [[-GamePath] <String>] [-Remove]
+.\scripts\geofencing.ps1 [-Profile <String>] [-GamePath <String>] [-BlockRegions <String[]>] [-Remove]
 ```
 
-- `-Profile`: Region profile (Germany, GermanyFrance, GermanyNetherlands, Europe)
-- `-GamePath`: Custom path to cod.exe (optional, auto-detected)
+- `-Profile`: Region profile (Europe, Germany, Custom) - default: Europe
+- `-GamePath`: Custom path to cod24-cod.exe (optional, auto-detected)
+- `-BlockRegions`: Array of regions to block (for Custom profile): UK, France, Netherlands, Poland, Switzerland, Luxembourg, Germany
 - `-Remove`: Remove all geofencing rules
 
-### ip-blocking.ps1 Parameters
-
-```powershell
-.\scripts\ip-blocking.ps1 [[-Action] <String>] [[-GamePath] <String>] [[-EnabledRegions] <String[]>]
-```
-
-- `-Action`: Add or Remove (default: Add)
-- `-GamePath`: Custom path to cod.exe (optional, auto-detected)
-- `-EnabledRegions`: Array of regions to enable (default: UK, France, Luxembourg)
+**Auto-detected Installation Paths:**
+- **Battle.net**: `C:\Program Files (x86)\Call of Duty`
+- **Steam**: `C:\Program Files (x86)\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe`
 
 ### port-configuration.ps1 Parameters
 

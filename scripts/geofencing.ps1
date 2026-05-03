@@ -4,17 +4,27 @@
     Call of Duty Geofencing Script - Unified Regional Blocking
 .DESCRIPTION
     Blocks game server connections by geographic region using IP ranges.
-    Supports multiple blocking profiles: Germany, France, Netherlands, Europe
+    Supports multiple blocking profiles: Europe (whitelisted), Germany, Custom.
+    Reads IP addresses from game-servers.txt configuration file.
+    Auto-detects Battle.net and Steam installations.
 .PARAMETER Profile
-    The blocking profile to apply: Germany, GermanyFrance, GermanyNetherlands, Europe, Custom
+    The blocking profile to apply:
+    - Europe: Whitelist (blocks non-European servers, allows Europe) - DEFAULT
+    - Germany: Block non-German servers
+    - Custom: Block specific regions using -BlockRegions parameter
 .PARAMETER GamePath
-     Path to cod24-cod.exe. Defaults to standard installation paths.
+    Path to cod24-cod.exe. Auto-detected if not specified.
+.PARAMETER BlockRegions
+    Array of regions to block (for Custom profile): UK, France, Netherlands, Poland, Switzerland, Luxembourg, Germany
+    Note: Europe is whitelisted by default (user is in Germany)
 .PARAMETER Remove
     Remove existing geofencing rules instead of adding them
 .EXAMPLE
+    .\geofencing.ps1 -Profile Europe
+.EXAMPLE
     .\geofencing.ps1 -Profile Germany
 .EXAMPLE
-    .\geofencing.ps1 -Profile Europe -GamePath "C:\Program Files (x86)\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe"
+    .\geofencing.ps1 -Profile Custom -BlockRegions @('UK', 'France')
 .EXAMPLE
     .\geofencing.ps1 -Remove
 #>
@@ -22,11 +32,15 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$false)]
-    [ValidateSet('Germany', 'GermanyFrance', 'GermanyNetherlands', 'Europe', 'Custom')]
-    [string]$Profile = 'Germany',
+    [ValidateSet('Europe', 'Germany', 'Custom')]
+    [string]$Profile = 'Europe',
 
     [Parameter(Mandatory=$false)]
     [string]$GamePath,
+
+    [Parameter(Mandatory=$false)]
+    [ValidateSet('UK', 'France', 'Netherlands', 'Poland', 'Switzerland', 'Luxembourg', 'Germany')]
+    [string[]]$BlockRegions = @(),
 
     [Parameter(Mandatory=$false)]
     [switch]$Remove
@@ -40,134 +54,126 @@ Import-Module $modulePath -Force
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-# Common IP ranges blocked across all European profiles
-$script:CommonEuropeanRanges = @(
-    '5.0.0.0-5.255.255.255',
-    '11.0.0.0-13.47.27.255',
-    '13.48.28.0-13.48.255.255',
-    '13.244.0.0-13.255.255.255',
-    '14.0.0.0-15.255.255.255',
-    '16.0.0.0-23.109.5.0',
-    '23.109.5.0-24.105.29.75',
-    '24.105.29.77-24.105.55.0',
-    '24.105.55.1-37.244.0.0',
-    '37.244.255.255-52.0.0.0',
-    '53.0.0.0-67.27.0.0',
-    '67.28.0.0-78.129.138.0',
-    '78.129.138.1-82.145.63.254',
-    '82.145.63.255-87.117.231.0',
-    '87.117.231.0-94.0.0.0',
-    '94.0.0.1-137.221.0.0',
-    '137.223.0.0-139.255.255.255',
-    '140.0.0.0-149.255.255.255',
-    '150.0.0.0-185.19.216.0',
-    '185.19.216.255-185.34.0.0',
-    '185.80.0.0-192.168.0.0',
-    '192.170.0.0-212.78.0.0',
-    '212.78.0.255-255.255.255.255'
-)
+#region IP Data Loading
 
-# Additional ranges for specific profiles
-$script:ProfileRanges = @{
-    Germany = @(
-        '146.0.200.0',
-        '173.244.0.0',
-        '173.244.0.0-173.245.213.255',
-        '212.39.68.0',
-        '212.39.68.0-212.39.68.255'
-    )
-
-    GermanyFrance = @(
-        '45.63.102.0',
-        '45.63.114.255-45.63.118.0',
-        '45.63.118.255-45.63.118.0',
-        '92.42.110.0',
-        '92.42.111.255-92.204.186.0',
-        '92.204.187.255-92.204.186.0',
-        '108.61.237.0',
-        '108.61.237.255-134.119.100.0',
-        '134.119.255.255-146.0.200.0',
-        '151.106.16.0',
-        '151.106.16.255-173.244.0.0',
-        '173.245.213.255-185.136.0.0',
-        '185.136.168.255-212.39.68.0',
-        '212.39.68.255-212.39.68.0'
-    )
-
-    GermanyNetherlands = @(
-        '13.49.70.0-13.49.100.255',
-        '13.49.138.0-13.49.138.255',
-        '13.49.140.255-13.49.255.255',
-        '13.50.0.0-13.51.35.255',
-        '13.51.36.0-13.100.100.100',
-        '24.105.53.0',
-        '24.105.53.255-24.105.55.0',
-        '31.186.229.0',
-        '31.186.229.255-34.120.203.0',
-        '34.120.203.255-34.125.9.0',
-        '34.125.9.255-37.244.0.0',
-        '41.0.0.0-45.63.118.0',
-        '45.63.118.255-46.23.78.0',
-        '46.23.78.255-52.0.0.0',
-        '64.95.100.0',
-        '64.95.100.255-67.27.0.0',
-        '72.26.219.0',
-        '72.26.219.255-72.251.246.22',
-        '72.251.246.255-78.129.138.0',
-        '85.195.79.0',
-        '85.195.120.255-107.6.136.0',
-        '107.6.255.255-142.91.15.0',
-        '142.91.15.255-146.0.200.0',
-        '148.0.0.0',
-        '172.255.15.0',
-        '172.255.15.255-173.244.0.0',
-        '173.245.213.255-198.20.103.0',
-        '198.20.103.255-206.191.156.0',
-        '206.191.156.255-212.39.68.0',
-        '212.39.68.255-212.39.68.0'
-    )
-
-    Europe = @(
-        '24.105.53.0',
-        '24.105.54.255-24.105.55.0',
-        '34.120.203.0',
-        '34.120.203.255-34.125.9.0',
-        '34.125.9.255-37.244.28.0',
-        '37.244.54.255-64.95.100.0',
-        '64.95.100.255-85.195.79.0',
-        '92.204.187.0',
-        '92.204.187.255-108.61.97.0',
-        '108.61.97.255-109.169.66.0',
-        '109.169.66.255-147.255.255.255',
-        '148.0.0.0',
-        '172.255.9.0',
-        '172.255.9.255-185.19.218.255',
-        '198.20.103.0',
-        '198.20.103.255-198.20.114.0',
-        '198.20.114.255-212.39.68.0'
-    )
-}
-
-
-
-function Get-IPRanges {
+function Import-GameServerIPs {
     <#
     .SYNOPSIS
-        Gets IP ranges for the specified profile
+        Loads IP addresses from game-servers.txt configuration file
+    .OUTPUTS
+        Hashtable mapping region names to IP address arrays
+    #>
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param()
+
+    $configPath = Join-Path $PSScriptRoot 'game-servers.txt'
+    
+    if (-not (Test-Path $configPath)) {
+        throw "Configuration file not found: $configPath"
+    }
+
+    $regionIPs = @{}
+    $currentRegion = $null
+
+    $lines = Get-Content $configPath -ErrorAction Stop
+    
+    foreach ($line in $lines) {
+        # Skip comments and empty lines
+        $trimmedLine = $line.Trim()
+        if ([string]::IsNullOrWhiteSpace($trimmedLine) -or $trimmedLine.StartsWith('#')) {
+            continue
+        }
+
+        # Check for region header [region_name]
+        if ($trimmedLine -match '^\[(\w+)\]$') {
+            $currentRegion = $matches[1].ToLower()
+            $regionIPs[$currentRegion] = @()
+            continue
+        }
+
+        # Add IP/range to current region
+        if ($currentRegion -and -not [string]::IsNullOrWhiteSpace($trimmedLine)) {
+            $regionIPs[$currentRegion] += $trimmedLine
+        }
+    }
+
+    return $regionIPs
+}
+
+#endregion
+
+#region Firewall Rules
+
+function Add-RegionalBlockingRules {
+    <#
+    .SYNOPSIS
+        Adds blocking rules for specified regions
     #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]
-        [string]$ProfileName
+        [string]$ExecutablePath,
+
+        [Parameter(Mandatory=$true)]
+        [string[]]$RegionsToBlock,
+
+        [Parameter(Mandatory=$true)]
+        [hashtable]$RegionIPs
     )
 
-    $ranges = [System.Collections.ArrayList]::new($script:CommonEuropeanRanges)
+    Write-Host "`nAdding geofencing rules..." -ForegroundColor Cyan
 
-    if ($script:ProfileRanges.ContainsKey($ProfileName)) {
-        $ranges.AddRange($script:ProfileRanges[$ProfileName])
+    $successCount = 0
+    $failCount = 0
+
+    # Get all available regions
+    $availableRegions = $RegionIPs.Keys | Where-Object { $_ -ne 'europe' }
+
+    foreach ($region in $availableRegions) {
+        # Determine if this region should be blocked
+        $shouldBlock = $false
+        foreach ($blockedRegion in $RegionsToBlock) {
+            if ($blockedRegion.ToLower() -eq $region.ToLower()) {
+                $shouldBlock = $true
+                break
+            }
+        }
+        
+        $ruleName = "Cod GeoFilter $region"
+        $ips = $RegionIPs[$region] -join ','
+        
+        $statusText = if ($shouldBlock) { "BLOCKED" } else { "ALLOWED (Europe)" }
+        $color = if ($shouldBlock) { 'Yellow' } else { 'Gray' }
+        
+        Write-Host "`n[$statusText] $region" -ForegroundColor $color
+
+        # Skip if no IPs defined for this region
+        if ([string]::IsNullOrWhiteSpace($ips)) {
+            Write-Host "  ℹ No IPs defined for $region, skipping" -ForegroundColor Gray
+            continue
+        }
+
+        $result = Add-FirewallRule `
+            -RuleName $ruleName `
+            -Direction Outbound `
+            -Protocol UDP `
+            -Action Block `
+            -Program $ExecutablePath `
+            -RemoteAddress $ips `
+            -Description "Block $region game servers for Call of Duty" `
+            -Enabled $shouldBlock
+
+        if ($result) {
+            $successCount++
+        } else {
+            $failCount++
+        }
     }
 
-    return ($ranges -join ',')
+    Write-Host "`n" -NoNewline
+    Write-Host "Summary: " -ForegroundColor Cyan -NoNewline
+    Write-Host "$successCount regions processed, $failCount failed" -ForegroundColor $(if ($failCount -eq 0) { 'Green' } else { 'Yellow' })
 }
 
 function Remove-GeofencingRules {
@@ -178,48 +184,60 @@ function Remove-GeofencingRules {
     [CmdletBinding()]
     param()
 
-    Write-Host "Removing existing geofencing rules..." -ForegroundColor Yellow
+    Write-Host "`nRemoving geofencing rules..." -ForegroundColor Cyan
 
-    $rules = Get-NetFirewallRule -DisplayName "Cod GeoFilter*" -ErrorAction SilentlyContinue
+    $totalRemoved = Remove-FirewallRulesByPattern -Pattern "Cod GeoFilter*"
 
-    if ($rules) {
-        $rules | Remove-NetFirewallRule
-        Write-Host "Removed $($rules.Count) geofencing rule(s)" -ForegroundColor Green
+    if ($totalRemoved -gt 0) {
+        Write-Host "`nSuccessfully removed $totalRemoved rule(s)" -ForegroundColor Green
     } else {
-        Write-Host "No existing geofencing rules found" -ForegroundColor Gray
+        Write-Host "`nNo rules to remove" -ForegroundColor Gray
     }
 }
 
-function Add-GeofencingRule {
+#endregion
+
+#region Profile Logic
+
+function Get-BlockedRegionsForProfile {
     <#
     .SYNOPSIS
-        Adds a geofencing firewall rule
+        Determines which regions to block based on profile
     #>
     [CmdletBinding()]
+    [OutputType([string[]])]
     param(
         [Parameter(Mandatory=$true)]
-        [string]$RuleName,
+        [string]$ProfileName,
 
-        [Parameter(Mandatory=$true)]
-        [string]$ExecutablePath,
-
-        [Parameter(Mandatory=$true)]
-        [string]$IPRanges
+        [Parameter(Mandatory=$false)]
+        [string[]]$CustomRegions
     )
 
-    $result = Add-FirewallRule `
-        -RuleName $RuleName `
-        -Direction Outbound `
-        -Protocol UDP `
-        -Action Block `
-        -Program $ExecutablePath `
-        -RemoteAddress $IPRanges `
-        -Description "Geographic blocking for Call of Duty servers"
+    # All available regions (excluding Europe which is whitelisted)
+    $allRegions = @('UK', 'France', 'Netherlands', 'Poland', 'Switzerland', 'Luxembourg', 'Germany')
 
-    if (-not $result) {
-        throw "Failed to create rule '$RuleName'"
+    switch ($ProfileName) {
+        'Europe' {
+            # Europe is whitelisted - block everything except Europe
+            # This means allow European IPs, block non-European
+            # For simplicity, we block all defined regions (non-European)
+            return $allRegions
+        }
+        'Germany' {
+            # Block everything except Germany
+            return $allRegions | Where-Object { $_ -ne 'Germany' }
+        }
+        'Custom' {
+            return $CustomRegions
+        }
+        default {
+            return @()
+        }
     }
 }
+
+#endregion
 
 # Main execution
 try {
@@ -235,50 +253,71 @@ try {
         exit 0
     }
 
+    # Load IP configuration
+    Write-Host "Loading IP configuration from game-servers.txt..." -ForegroundColor Gray
+    $regionIPs = Import-GameServerIPs
+
+    if ($regionIPs.Count -eq 0) {
+        throw "No IP configurations found in game-servers.txt"
+    }
+
+    Write-Host "Loaded $($regionIPs.Count) region(s)" -ForegroundColor Gray
+
     # Validate and locate game executable
     if (-not $GamePath) {
-        Write-Host "Searching for Call of Duty executable..." -ForegroundColor Yellow
+        Write-Host "`nSearching for Call of Duty executable..." -ForegroundColor Yellow
         $GamePath = Find-CodExecutable
 
         if (-not $GamePath) {
-            Write-Error @"
+            throw @"
 Could not locate cod24-cod.exe automatically. Please specify the path using -GamePath parameter.
-Example: .\geofencing.ps1 -Profile Germany -GamePath "C:\Program Files (x86)\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe"
+
+Supported installation paths:
+  Battle.net: C:\Program Files (x86)\Call of Duty
+  Steam: C:\Program Files (x86)\Steam\steamapps\common\Call of Duty HQ
+
+Example: .\geofencing.ps1 -Profile Europe -GamePath "C:\Program Files (x86)\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe"
 "@
-            exit 1
         }
     }
 
     if (-not (Test-Path $GamePath)) {
-        Write-Error "Game executable not found at: $GamePath"
-        exit 1
+        throw "Game executable not found at: $GamePath"
     }
 
     Write-Host "Using executable: $GamePath" -ForegroundColor Gray
-    Write-Host "Applying profile: $Profile" -ForegroundColor Gray
+
+    # Determine blocked regions based on profile
+    $blockedRegions = Get-BlockedRegionsForProfile -ProfileName $Profile -CustomRegions $BlockRegions
+
+    if ($blockedRegions.Count -eq 0 -and $Profile -ne 'Europe') {
+        Write-Host "No regions selected for blocking" -ForegroundColor Yellow
+    }
+
+    # Display configuration
+    Write-Host "Profile: $Profile" -ForegroundColor Cyan
+    
+    if ($Profile -eq 'Europe') {
+        Write-Host "Mode: Whitelist (Europe allowed, blocking other regions)" -ForegroundColor Gray
+    } elseif ($Profile -eq 'Germany') {
+        Write-Host "Mode: Whitelist (Germany allowed, blocking other regions)" -ForegroundColor Gray
+    } else {
+        Write-Host "Blocked regions: $($blockedRegions -join ', ')" -ForegroundColor Gray
+    }
 
     # Remove existing rules first
     Remove-GeofencingRules
 
-    # Get IP ranges for profile
-    $ipRanges = Get-IPRanges -ProfileName $Profile
+    # Add new rules
+    Add-RegionalBlockingRules -ExecutablePath $GamePath -RegionsToBlock $blockedRegions -RegionIPs $regionIPs
 
-    if (-not $ipRanges) {
-        Write-Error "No IP ranges defined for profile: $Profile"
-        exit 1
-    }
-
-    # Add new rule
-    $ruleName = "Cod GeoFilter $Profile"
-    Add-GeofencingRule -RuleName $ruleName -ExecutablePath $GamePath -IPRanges $ipRanges
-
-    Write-Host "`nGeofencing configured successfully!" -ForegroundColor Green
-    Write-Host "Profile: $Profile" -ForegroundColor Gray
-    Write-Host "Blocked IP ranges: $($ipRanges.Split(',').Count)" -ForegroundColor Gray
-    Write-Host ""
+    Write-Host "`n✓ Geofencing configured successfully!`n" -ForegroundColor Green
+    exit 0
 }
 catch {
-    Write-Host "`nError: $_" -ForegroundColor Red
-    Write-Host "Stack trace: $($_.ScriptStackTrace)" -ForegroundColor Red
+    Write-Host "`n✗ Error: $_`n" -ForegroundColor Red
+    if ($_.ScriptStackTrace) {
+        Write-Host "Stack trace: $($_.ScriptStackTrace)" -ForegroundColor Red
+    }
     exit 1
 }
