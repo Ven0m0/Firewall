@@ -1,6 +1,42 @@
 # Changes Summary
 
-## Files Modified
+## Version 4.0
+
+### Files Modified
+
+### 1. scripts/geofencing.ps1
+- **Complete rewrite** - Merged functionality from ip-blocking.ps1
+- Reads IP addresses from `game-servers.txt` instead of hardcoding
+- New `-Profile` parameter: Europe (default), Germany, Custom
+- New `-BlockRegions` parameter for Custom profile
+- Europe whitelist by default (user in Germany)
+
+### 2. scripts/game-servers.txt
+- Converted to parsable INI-like format
+- Added region headers: [uk], [france], [netherlands], [poland], [switzerland], [luxembourg], [germany]
+- Contains IP addresses and ranges for each region
+
+### 3. scripts/FirewallUtils.psm1
+- Added Battle.net path detection: `C:\Program Files (x86)\Call of Duty`
+- Added system variable support: `${env:ProgramFiles(x86)}`, `$env:ProgramFiles`
+- Added `Get-CodInstallPath` function for getting installation directory
+
+### 4. scripts/ip-blocking.ps1
+- **Deprecated** - Now shows redirect message to use geofencing.ps1
+
+### 5. README.md
+- Updated to reflect new unified geofencing approach
+- Documented new profiles and auto-detection
+- Added game-servers.txt configuration info
+
+### 6. AGENTS.md
+- Updated to reflect merged ip-blocking.ps1
+
+---
+
+## Previous Versions
+
+### Files Modified (v3.0)
 
 ### 1. scripts/geofencing.ps1
 - Updated parameter description: "Path to cod.exe" → "Path to cod24-cod.exe"
