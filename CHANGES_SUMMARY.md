@@ -17,11 +17,9 @@
 - Updated error message: "Could not locate cod.exe automatically" → "Could not locate cod24-cod.exe automatically"
 
 ### 3. scripts/FirewallUtils.psm1
-- Updated Find-CodExecutable function to search for cod24-cod.exe in Steam path:
+- Updated Find-CodExecutable function to search for cod24-cod.exe in Steam path (removed D: and E: paths):
   - "${env:ProgramFiles(x86)}\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe"
   - "${env:ProgramFiles}\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe"
-  - "D:\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe"
-  - "E:\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe"
   - "C:\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe"
 
 ## Summary of Changes

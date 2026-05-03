@@ -1,9 +1,13 @@
 ---
 name: pwsh-syntax
-description: Run PowerShell syntax check on scripts
+description: Run PowerShell syntax check and linting on scripts
 pattern: "lint|syntax|pwsh|powershell"
 ---
 
 ```bash
-pwsh -NoProfile -Command "Get-Command -Syntax .\scripts\*.ps1"
+pwsh -NoLogo -NoProfile -Command '
+Set-PSRepository PSGallery -InstallationPolicy Trusted; 
+Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -AllowClobber -SkipPublisherCheck;
+Invoke-ScriptAnalyzer -Path ./scripts/*.ps1
+'
 ```
