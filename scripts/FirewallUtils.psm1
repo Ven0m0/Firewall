@@ -25,8 +25,6 @@ function Find-CodExecutable {
 $possiblePaths = @(
          "${env:ProgramFiles(x86)}\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe",
          "${env:ProgramFiles}\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe",
-         "D:\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe",
-         "E:\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe",
          "C:\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe"
      )
 
