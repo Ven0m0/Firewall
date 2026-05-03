@@ -8,13 +8,13 @@
 .PARAMETER Profile
     The blocking profile to apply: Germany, GermanyFrance, GermanyNetherlands, Europe, Custom
 .PARAMETER GamePath
-    Path to cod.exe. Defaults to standard installation paths.
+     Path to cod24-cod.exe. Defaults to standard installation paths.
 .PARAMETER Remove
     Remove existing geofencing rules instead of adding them
 .EXAMPLE
     .\geofencing.ps1 -Profile Germany
 .EXAMPLE
-    .\geofencing.ps1 -Profile Europe -GamePath "D:\Call of Duty\_retail_\cod.exe"
+    .\geofencing.ps1 -Profile Europe -GamePath "C:\Program Files (x86)\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe"
 .EXAMPLE
     .\geofencing.ps1 -Remove
 #>
@@ -242,8 +242,8 @@ try {
 
         if (-not $GamePath) {
             Write-Error @"
-Could not locate cod.exe automatically. Please specify the path using -GamePath parameter.
-Example: .\geofencing.ps1 -Profile Germany -GamePath "D:\Call of Duty\_retail_\cod.exe"
+Could not locate cod24-cod.exe automatically. Please specify the path using -GamePath parameter.
+Example: .\geofencing.ps1 -Profile Germany -GamePath "C:\Program Files (x86)\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe"
 "@
             exit 1
         }
