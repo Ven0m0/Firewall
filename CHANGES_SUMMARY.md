@@ -13,7 +13,7 @@
 ### 2. scripts/ip-blocking.ps1
 - Updated parameter description: "Path to cod.exe" → "Path to cod24-cod.exe"
 - Added example with GamePath parameter: 
-  ".\ip-blocking.ps1 -Action Add -EnabledRegions @('UK', 'France') -GamePath "C:\Program Files (x86)\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe""
+  ".\ip-blocking.ps1 -Action Add -EnabledRegions @('UK', 'France') -GamePath 'C:\Program Files (x86)\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe'"
 - Updated error message: "Could not locate cod.exe automatically" → "Could not locate cod24-cod.exe automatically"
 
 ### 3. scripts/FirewallUtils.psm1
