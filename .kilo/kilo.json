@@ -72,7 +72,7 @@
 				"serena", "start-mcp-server",
 				"--context", "ide", "--project-from-cwd"
 			],
-			"enabled": false
+			"enabled": true
 		},
 		"octocode": {
 			"type": "local",
