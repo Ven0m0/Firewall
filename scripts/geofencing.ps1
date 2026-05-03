@@ -72,9 +72,9 @@ $script:ProfileRanges = @{
     Germany = @(
         '146.0.200.0',
         '173.244.0.0',
-        '173.245.213.255-173.244.0.0',
+        '173.244.0.0-173.245.213.255',
         '212.39.68.0',
-        '212.39.68.255-212.39.68.0'
+        '212.39.68.0-212.39.68.255'
     )
 
     GermanyFrance = @(
@@ -148,7 +148,7 @@ $script:ProfileRanges = @{
     )
 }
 
-# Note: Find-CodExecutable is now imported from FirewallUtils.psm1
+
 
 function Get-IPRanges {
     <#
