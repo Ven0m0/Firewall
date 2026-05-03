@@ -22,13 +22,13 @@ function Find-CodExecutable {
     [OutputType([string])]
     param()
 
-    $possiblePaths = @(
-        "${env:ProgramFiles(x86)}\Call of Duty\_retail_\cod.exe",
-        "${env:ProgramFiles}\Call of Duty\_retail_\cod.exe",
-        "D:\Call of Duty\_retail_\cod.exe",
-        "E:\Call of Duty\_retail_\cod.exe",
-        "C:\Call of Duty\_retail_\cod.exe"
-    )
+$possiblePaths = @(
+         "${env:ProgramFiles(x86)}\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe",
+         "${env:ProgramFiles}\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe",
+         "D:\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe",
+         "E:\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe",
+         "C:\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe"
+     )
 
     foreach ($path in $possiblePaths) {
         if (Test-Path $path) {

@@ -8,7 +8,7 @@
 .PARAMETER Action
     Action to perform: Add or Remove firewall rules
 .PARAMETER GamePath
-    Path to cod.exe. Auto-detected if not specified.
+     Path to cod24-cod.exe. Auto-detected if not specified.
 .PARAMETER EnabledRegions
     Array of regions to enable. Default: UK, France, Luxembourg
 .EXAMPLE
@@ -16,7 +16,7 @@
 .EXAMPLE
     .\ip-blocking.ps1 -Action Remove
 .EXAMPLE
-    .\ip-blocking.ps1 -Action Add -EnabledRegions @('UK', 'France')
+    .\ip-blocking.ps1 -Action Add -EnabledRegions @('UK', 'France') -GamePath "C:\Program Files (x86)\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe"
 #>
 
 [CmdletBinding()]
@@ -193,8 +193,8 @@ try {
 
             if (-not $GamePath) {
                 throw @"
-Could not locate cod.exe automatically. Please specify the path using -GamePath parameter.
-Example: .\ip-blocking.ps1 -Action Add -GamePath "D:\Call of Duty\_retail_\cod.exe"
+Could not locate cod24-cod.exe automatically. Please specify the path using -GamePath parameter.
+Example: .\ip-blocking.ps1 -Action Add -GamePath "C:\Program Files (x86)\Steam\steamapps\common\Call of Duty HQ\cod24\cod24-cod.exe"
 "@
             }
         }
