@@ -1,0 +1,53 @@
+# =============================================================================
+# mise.toml - Cross-platform development environment
+# =============================================================================
+[settings]
+experimental = true
+color = true
+yes = true
+auto_install = true
+
+[settings.python]
+uv_venv_auto = "create|source"
+uv_venv_create_args = ["--seed", "--system-site-packages"]
+
+[settings.pipx]
+uvx = true
+
+[settings.dotnet]
+cli_telemetry_optout = true
+
+[tools]
+powershell = "latest"
+python = "3.14"
+uv = "latest"
+ruff = "latest"
+ty = "latest"
+prek = "latest"
+"pipx:pytest" = "latest"
+"pipx:basedpyright" = "latest"
+"pipx:py-psscriptanalyzer" = "latest"
+ripgrep = "latest"
+fd = "latest"
+
+[env]
+PROJECT_ROOT = "{{config_root}}"
+UV_PYTHON = { value = "{{ tools.python.path }}", tools = true }
+UV_LINK_MODE = "symlink"
+_.python.venv = { path = ".venv", create = true, uv_create_args = ["--seed", "--system-site-packages"] }
+
+[tasks]
+# Show available tasks
+help = [
+  "mise tasks"
+]
+
+[task.dev]
+description = "Install powershell lint+format utils"
+run = ["curl -sSfL https://webi.sh/pwsh-essentials | bash && source ~/.config/envman/PATH.env"]
+
+[tasks.pwsh-install]
+description = "Install pwsh lint"
+run = '''
+pwsh -NoLogo -NoProfile -Command "Set-PSRepository PSGallery -InstallationPolicy Trusted; Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -AllowClobber"
+'''
