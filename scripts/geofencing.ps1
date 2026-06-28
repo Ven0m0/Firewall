@@ -179,15 +179,7 @@ function Remove-GeofencingRules {
     param()
 
     Write-Host "Removing existing geofencing rules..." -ForegroundColor Yellow
-
-    $rules = Get-NetFirewallRule -DisplayName "Cod GeoFilter*" -ErrorAction SilentlyContinue
-
-    if ($rules) {
-        $rules | Remove-NetFirewallRule
-        Write-Host "Removed $($rules.Count) geofencing rule(s)" -ForegroundColor Green
-    } else {
-        Write-Host "No existing geofencing rules found" -ForegroundColor Gray
-    }
+    Remove-FirewallRulesByPattern -Pattern "Cod GeoFilter*" | Out-Null
 }
 
 function Add-GeofencingRule {
