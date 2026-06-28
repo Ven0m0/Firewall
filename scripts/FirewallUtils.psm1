@@ -207,19 +207,15 @@ function Remove-FirewallRuleByName {
     )
 
     try {
-        $rule = Get-NetFirewallRule -DisplayName $RuleName -ErrorAction SilentlyContinue
-
-        if ($rule) {
-            Remove-NetFirewallRule -DisplayName $RuleName -ErrorAction Stop
-            Write-Host "  ✓ Removed rule: $RuleName" -ForegroundColor Green
-            return $true
-        }
-        else {
+        Remove-NetFirewallRule -DisplayName $RuleName -ErrorAction Stop
+        Write-Host "  ✓ Removed rule: $RuleName" -ForegroundColor Green
+        return $true
+    }
+    catch {
+        if ($_.Exception.Message -match "No rules match the specified criteria" -or $_.CategoryInfo.Category -eq "ObjectNotFound") {
             Write-Host "  ℹ Rule not found: $RuleName" -ForegroundColor Gray
             return $false
         }
-    }
-    catch {
         Write-Host "  ✗ Error removing rule '$RuleName': $_" -ForegroundColor Red
         return $false
     }
